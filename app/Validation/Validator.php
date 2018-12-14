@@ -7,11 +7,10 @@ use Respect\Validation\Exceptions\NestedValidationException;
 
 class Validator
 {
-    protected $errors;
+    protected $errors = [];
 
     public function validate(Request $request, array $rules)
     {
-
         foreach ($rules as $field => $rule) {
             try {
 

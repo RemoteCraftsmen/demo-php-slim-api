@@ -3,7 +3,7 @@
 namespace App\Middleware;
 
 use Firebase\JWT\JWT;
-use Slim\Http\{Response, Request};
+use Slim\Http\{Response, Request, StatusCode};
 
 class CheckJWTToken
 {
@@ -20,24 +20,24 @@ class CheckJWTToken
                     'status'    => 'Error',
                     'message'   => 'No token provided'
                 ],
-                403
+                StatusCode::HTTP_FORBIDDEN
             );
         }
 
         $decodedToken = JWT::decode($token, $_ENV['JWT_SECRET'], array('HS256'));
 
-        if(!isset($decodedToken->logged_user)){
+        if(empty($decodedToken->loggedUserId)){
             return $response->withJson(
                 [
                     'auth'      => 'false',
-                    'status'    => 'Error',
+                    'status'    => 'error',
                     'message'   => 'Failed to authenticate token.'
                 ],
-                403
+                StatusCode::HTTP_FORBIDDEN
             );
         }
 
-        $request = $request->withAttribute('logged_user', $decodedToken->logged_user);
+        $request = $request->withAttribute('loggedUserId', $decodedToken->loggedUserId);
 
         return $next($request, $response);
     }

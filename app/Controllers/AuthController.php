@@ -4,41 +4,87 @@ namespace App\Controllers;
 
 use App\Models\User;
 use App\Services\Auth;
-use Slim\Http\{Response, Request};
-use \Illuminate\Database\QueryException;
+use Respect\Validation\Validator;
+use Slim\Http\{Request, Response, StatusCode};
 
 
 class AuthController extends Controller
 {
     public function login(Request $request, Response $response)
     {
+        $userInfo = $request->getParams();
+
+        $user = User::where('email', $userInfo['email'])->first();
+
+        if (!$user) {
+            return $response->withJson([
+                'status' => 'error',
+                'auth' => false,
+                'message' => 'User does not exist'], StatusCode::HTTP_NOT_FOUND);
+        }
+
+        if (!Auth::checkPasswords($userInfo['password'], $user->password)) {
+            return $response->withJson([
+                'status' => 'error',
+                'auth' => false], 
+                StatusCode::HTTP_UNAUTHORIZED);
+        }
+
+        $token = Auth::getToken($user);
+        return $response->withJson(
+            [
+                "token" => $token,
+                $user
+            ],
+            StatusCode::HTTP_OK);
+    }
+
+    public function register(Request $request, Response $response)
+    {
+        $validation = $this->validator->validate($request, [
+            'email' => Validator::noWhitespace()->notEmpty()->email()->length(3, 100),
+            'username' => Validator::notEmpty()->length(3, 30),
+            'password' => Validator::noWhitespace()->notEmpty()->length(5, 100),
+            'first_name' => Validator::notEmpty()->length(3, 30),
+            'last_name' => Validator::notEmpty()->length(3, 30),
+        ]);
+
+        if ($validation->fail()) {
+            $errors = $validation->getErrors();
+            return $response->withJson(
+                $errors,
+                StatusCode::HTTP_BAD_REQUEST
+            );
+        };
 
         $userInfo = $request->getParams();
 
-        try {
-            $user = User::where('email', $userInfo['email'])->first();
-
-            if (!$user->email) {
-                return $response->withJson([
-                    'status' => 'Error',
-                    'auth' => false,
-                    'message' => 'User does not exist'], 404);
-            }
-
-            if (Auth::checkPasswords($userInfo['password'], $user->password)) {
-                $token = Auth::getToken($user);
-                return $response->withJson(["token" => $token, $user], 200, JSON_PRETTY_PRINT);
-            }
-
+        if (User::where('email', $userInfo['email'])->first()) {
             return $response->withJson([
                 'status' => 'Error',
-                'auth' => false], 401);
+                'message' => 'The user with such email already exist'],
+                StatusCode::HTTP_CONFLICT
 
-        } catch (QueryException $e) {
-            return $response->withStatus($e->getCode())->withJson([
-                'status' => 'Error',
-                'message' => $e->getMessage()]);
+            );
         }
-    }
 
+
+        $user = User::create([
+            'email' => $userInfo['email'],
+            'username' => $userInfo['username'],
+            'password' => password_hash($userInfo['password'], PASSWORD_BCRYPT),
+            'first_name' => $userInfo['first_name'],
+            'last_name' => $userInfo['last_name'],
+
+        ]);
+
+        $token = Auth::getToken($user);
+        return $response->withJson(
+            [
+                "token" => $token,
+                $user
+            ],
+            StatusCode::HTTP_OK
+        );
+    }
 }

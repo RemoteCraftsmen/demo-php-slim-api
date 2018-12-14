@@ -4,7 +4,6 @@ use App\DB\Migrations\Migration;
 
 class Users extends Migration
 {
-
     public function up(){
         $users = $this->table('users');
         $users->addColumn('username', 'string', ['limit' => 30])

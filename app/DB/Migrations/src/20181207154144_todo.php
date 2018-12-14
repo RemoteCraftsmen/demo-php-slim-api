@@ -4,8 +4,6 @@ use App\DB\Migrations\Migration;
 
 class Todo extends Migration
 {
-
-
     public function up(){
         $users = $this->table('todos');
         $users->addColumn('name', 'string', ['limit' => 30])

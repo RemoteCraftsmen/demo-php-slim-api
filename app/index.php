@@ -1,12 +1,7 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: kamil
- * Date: 2018-12-07
- * Time: 11:52
- */
 
-use Slim\Http\Request;
+use Slim\Http\{Request, Response, StatusCode};
+
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -17,11 +12,12 @@ try {
 
 }
 
-//create instance of Slim Framework with settings
+// create instance of Slim Framework with settings
 // settings will be saved in conatiner -> $container['settings']
 $app = new Slim\App([
     'settings' => [
         'displayErrorDetails' => getenv('APP_DEBUG') === 'true',
+        'debug' => getenv('APP_DEBUG') === 'true',
         'app' => [
             'name' => getenv('APP_NAME')
         ],
@@ -37,23 +33,16 @@ $app = new Slim\App([
             'charset' => 'utf8',
             'collation' => 'utf8_unicode_ci',
             'prefix' => '',
-        ]
+        ],
+        'logger' => [
+            'name' => 'slim-app',
+            'path' => __DIR__ . '/../logs/app.log',
+            'level' => \Monolog\Logger::DEBUG,
+        ],
     ],
 ]);
 
-//Set our view engine, we are using Twig
-//Directory to all twig templates should be -> resources/views
 $container = $app->getContainer();
-
-//Set up Twig templates
-$container['view'] = function ($container) {
-    $view = new \Slim\Views\Twig(__DIR__ . '/../resources/views', [
-        'cache' => $container->settings['views']['cache']
-    ]);
-    $basePath = rtrim(str_ireplace('index.php', '', $container['request']->getUri()->getBasePath()), '/');
-    $view->addExtension(new Slim\Views\TwigExtension($container['router'], $basePath));
-    return $view;
-};
 
 // To use Eloquent globally we have to set it up outside Container
 $capsule = new \Illuminate\Database\Capsule\Manager;
@@ -62,7 +51,6 @@ $capsule->setAsGlobal();
 $capsule->bootEloquent();
 
 $container['db'] = function ($container) use ($capsule) {
-
     return $capsule;
 };
 
@@ -71,10 +59,10 @@ $container['validator'] = function ($container) {
     return new App\Validation\Validator;
 };
 
-//MIDDLEWARES
+//----------------------- MIDDLEWARES -----------------------------
 $app->add(new Tuupola\Middleware\JwtAuthentication([
     "path" => ["/"],
-    "ignore" => ["/users", "/auth/login"],
+    "ignore" => ["/auth/register", "/auth/login"],
     "secret" => getenv("JWT_SECRET"),
     "relaxed" => ["localhost", "slim.test"],
     "error" => function ($response, $arguments) {
@@ -85,6 +73,33 @@ $app->add(new Tuupola\Middleware\JwtAuthentication([
     }
 
 ]));
+
+//----------------------- ERRORLOGGER -----------------------------
+$container['logger'] = function ($c) {
+    $settings = $c->get('settings')['logger'];
+    $logger = new Monolog\Logger($settings['name']);
+    $logger->pushProcessor(new Monolog\Processor\UidProcessor());
+    $logger->pushHandler(new Monolog\Handler\StreamHandler($settings['path'], $settings['level']));
+    return $logger;
+};
+
+//----------------------- ERRORHANDLERS -----------------------------
+$container['errorHandler'] = function ($container) {
+    return function ($request, $response, $error) use ($container) {
+        if ($error instanceof Illuminate\Database\QueryException) {
+            if(getenv('APP_ENV')=='development') {
+                $obj = new App\Handlers\ErrorLogger($container['logger']);
+                $obj($request, $response, $error);
+            }
+
+            return $response->withJson([
+                'status' => 'error',
+                'message' => (getenv('APP_ENV')=='development')?$error->getMessage():'Internal Server Error'],
+                StatusCode::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    };
+};
 
 
 require_once __DIR__ . '/../routes/web.php';

@@ -24,7 +24,7 @@ class Auth
             "iat" => $now->getTimeStamp(),
             "exp" => $future->getTimeStamp(),
             "jti" => $jti,
-            "logged_user" => $user->id,
+            "loggedUserId" => $user->id,
         ];
 
         return $token = JWT::encode($payload, $_ENV['JWT_SECRET'], "HS256");
