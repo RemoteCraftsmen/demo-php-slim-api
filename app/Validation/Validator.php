@@ -11,6 +11,8 @@ class Validator
 
     public function validate(Request $request, array $rules)
     {
+        unset($this->errors);
+
         foreach ($rules as $field => $rule) {
             try {
 

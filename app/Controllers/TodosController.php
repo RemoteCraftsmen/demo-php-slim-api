@@ -3,17 +3,16 @@
 namespace App\Controllers;
 
 use App\Models\Todo;
-use Illuminate\Database\QueryException;
 use Respect\Validation\Validator;
 use Slim\Http\{Request, Response, StatusCode};
 
 class TodosController extends Controller
 {
-
     public function index(Request $request, Response $response)
     {
-        $loggedUserId = $request->getAttribute('loggedUserId');
+        $loggedUserId = $request->getAttribute('token')['loggedUserId'];
         $todos = Todo::where('user_id', $loggedUserId)->get();
+
         return $response->withJson(
             $todos,
             StatusCode::HTTP_OK
@@ -22,9 +21,8 @@ class TodosController extends Controller
 
     public function create(Request $request, Response $response)
     {
-
         $validation = $this->validator->validate($request, [
-            'name' => Validator::notEmpty()->noWhitespace()->length(3, 30),
+            'name' => Validator::notEmpty()->length(3, 30),
             'user_id' => Validator::optional(Validator::numeric())
         ]);
 
@@ -37,7 +35,7 @@ class TodosController extends Controller
         };
 
         $todoInfo = $request->getParams(['name','user_id']);
-        $loggedUserId = $request->getAttribute('loggedUserId');
+        $loggedUserId = $request->getAttribute('token')['loggedUserId'];
 
         if (empty($todoInfo['user_id'])) {
             $todoInfo['user_id'] = $loggedUserId;
@@ -55,10 +53,11 @@ class TodosController extends Controller
     public function show(Request $request, Response $response, $args)
     {
         $todo = Todo::find($args['id']);
-        $loggedUserId = $request->getAttribute('loggedUserId');
+        $loggedUserId = $request->getAttribute('token')['loggedUserId'];
+
         if (!$todo) {
             return $response->withJson([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Item not found'],
                 StatusCode::HTTP_NOT_FOUND
             );
@@ -66,7 +65,7 @@ class TodosController extends Controller
 
         if (!$todo->user_id || $todo->user_id !== $loggedUserId) {
             return $response->withJson([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Permission Denied'],
                 StatusCode::HTTP_FORBIDDEN
             );
@@ -81,11 +80,11 @@ class TodosController extends Controller
     public function delete(Request $request, Response $response, $args)
     {
         $todo = Todo::find($args['id']);
-        $loggedUserId = $request->getAttribute('loggedUserId');
+        $loggedUserId = $request->getAttribute('token')['loggedUserId'];
 
         if (!$todo) {
             return $response->withJson([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Item not found'],
                 StatusCode::HTTP_NOT_FOUND
             );
@@ -93,21 +92,24 @@ class TodosController extends Controller
 
         if (!$todo->user_id || $todo->user_id !== $loggedUserId) {
             return $response->withJson([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Permission Denied'],
                 StatusCode::HTTP_FORBIDDEN
             );
         }
 
         $todo->delete();
-        return $response->withStatus(StatusCode::HTTP_OK)->write('Item has been deleted');
+
+        return $response->withJson([
+            'message' => 'Item has been deleted'],
+            StatusCode::HTTP_OK
+        );
     }
 
     public function update(Request $request, Response $response, $args)
     {
-
         $validation = $this->validator->validate($request, [
-            'name' => Validator::notEmpty()->noWhitespace()->length(3, 30),
+            'name' => Validator::notEmpty()->length(3, 30),
             'user_id' => Validator::optional(Validator::numeric())
         ]);
 
@@ -120,11 +122,12 @@ class TodosController extends Controller
         };
 
         $todo = Todo::find($args['id']);
-        $loggedUserId = $request->getAttribute('loggedUserId');
+        $loggedUserId = $request->getAttribute('token')['loggedUserId'];
         $fieldsToUpdate = $request->getParams(['name', 'user_id']);
 
         if (!$todo) {
             $fieldsToUpdate['creator_id'] = $loggedUserId;
+            $fieldsToUpdate['user_id'] = $loggedUserId;
             $todo = Todo::create($fieldsToUpdate);
 
             return $response->withJson(
@@ -136,7 +139,7 @@ class TodosController extends Controller
         if ($todo->user_id && $todo->user_id !== $loggedUserId) {
             return $response->withJson(
                 [
-                    'status' => 'Error',
+                    'status' => 'error',
                     'message' => 'Permission Denied'
                 ],
                 StatusCode::HTTP_FORBIDDEN
@@ -144,6 +147,7 @@ class TodosController extends Controller
         }
 
         $todo->update($fieldsToUpdate);
+
         return $response->withJson(
             $todo,
             StatusCode::HTTP_OK
@@ -153,7 +157,7 @@ class TodosController extends Controller
     public function markAsCompleted(Request $request, Response $response, $args)
     {
         $validation = $this->validator->validate($request, [
-            'name' => Validator::notEmpty()->noWhitespace()->length(3, 30),
+            'name' => Validator::notEmpty()->length(3, 30),
             'completed' => Validator::optional(Validator::boolVal()),
             'user_id' => Validator::optional(Validator::numeric())
         ]);
@@ -167,18 +171,19 @@ class TodosController extends Controller
         };
 
         $todo = Todo::find($args['id']);
+        $loggedUserId = $request->getAttribute('token')['loggedUserId'];
 
         if (!$todo) {
             return $response->withJson([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Item not found'],
                 StatusCode::HTTP_NOT_FOUND
             );
         }
 
-        if (!$todo->user_id || $todo->user_id !== $request->getAttribute('loggedUserId')) {
+        if (!$todo->user_id || $todo->user_id !== $loggedUserId) {
             return $response->withJson([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'Permission Denied'],
                 StatusCode::HTTP_FORBIDDEN
             );
@@ -186,6 +191,7 @@ class TodosController extends Controller
 
         $fieldsToUpdate = $request->getParams(['name', 'completed', 'user_id']);
         $todo->update($fieldsToUpdate);
+
         return $response->withJson(
             $todo,
             StatusCode::HTTP_OK

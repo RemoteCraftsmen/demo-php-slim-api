@@ -7,7 +7,6 @@ use App\Services\Auth;
 use Respect\Validation\Validator;
 use Slim\Http\{Request, Response, StatusCode};
 
-
 class AuthController extends Controller
 {
     public function login(Request $request, Response $response)
@@ -26,17 +25,19 @@ class AuthController extends Controller
         if (!Auth::checkPasswords($userInfo['password'], $user->password)) {
             return $response->withJson([
                 'status' => 'error',
-                'auth' => false], 
+                'auth' => false],
                 StatusCode::HTTP_UNAUTHORIZED);
         }
 
         $token = Auth::getToken($user);
+
         return $response->withJson(
             [
                 "token" => $token,
-                $user
+                "user" => $user
             ],
-            StatusCode::HTTP_OK);
+            StatusCode::HTTP_OK
+        );
     }
 
     public function register(Request $request, Response $response)
@@ -61,13 +62,12 @@ class AuthController extends Controller
 
         if (User::where('email', $userInfo['email'])->first()) {
             return $response->withJson([
-                'status' => 'Error',
+                'status' => 'error',
                 'message' => 'The user with such email already exist'],
                 StatusCode::HTTP_CONFLICT
 
             );
         }
-
 
         $user = User::create([
             'email' => $userInfo['email'],
@@ -75,14 +75,14 @@ class AuthController extends Controller
             'password' => password_hash($userInfo['password'], PASSWORD_BCRYPT),
             'first_name' => $userInfo['first_name'],
             'last_name' => $userInfo['last_name'],
-
         ]);
 
         $token = Auth::getToken($user);
+        
         return $response->withJson(
             [
                 "token" => $token,
-                $user
+                "user" => $user
             ],
             StatusCode::HTTP_OK
         );

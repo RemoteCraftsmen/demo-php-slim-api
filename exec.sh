@@ -77,6 +77,9 @@ createmigration(){
 
 }
 
+test(){
+    docker-compose exec php ./vendor/bin/phpunit ./app/Tests/ --testdox
+}
 #---------------------#
 #----- Execution -----#
 #---------------------#

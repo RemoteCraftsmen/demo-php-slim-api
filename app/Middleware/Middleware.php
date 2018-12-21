@@ -2,14 +2,23 @@
 
 namespace App\Middleware;
 
-use Interop\Container\ContainerInterface;
+use Tuupola\Middleware\JwtAuthentication;
 
-abstract class Middleware
+class Middleware
 {
-    protected $c;
+    private $app;
+    private $container;
 
-    public function __construct(ContainerInterface $c)
+    function __construct($app)
     {
-        $this->c = $c;
+        $this->app = $app;
+        $this->container = $app->getContainer();
+        $this->jwtAuthentication();
+    }
+
+    function jwtAuthentication()
+    {
+        $jwtSettings = $this->container->get('settings')['jwt'];
+        $this->app->add(new JwtAuthentication($jwtSettings));
     }
 }

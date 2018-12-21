@@ -8,10 +8,8 @@ use \Datetime;
 
 class Auth
 {
-
     static function getToken($user)
     {
-
         try {
             $now = new DateTime();
         } catch (\Exception $e) {
@@ -26,7 +24,6 @@ class Auth
             "jti" => $jti,
             "loggedUserId" => $user->id,
         ];
-
         return $token = JWT::encode($payload, $_ENV['JWT_SECRET'], "HS256");
     }
 

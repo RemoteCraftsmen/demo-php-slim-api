@@ -1,3 +1,0 @@
-[2018-12-14 14:34:56] slim-app.CRITICAL: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'emailaa' in 'where clause' (SQL: select * from `users` where `emailaa` = new@a.com limit 1) [] {"uid":"b18a6b6"}
-[2018-12-14 14:36:36] slim-app.CRITICAL: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'emailaa' in 'where clause' (SQL: select * from `users` where `emailaa` = new@a.com limit 1) [] {"uid":"944f75d"}
-[2018-12-14 14:38:53] slim-app.CRITICAL: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'emailaa' in 'where clause' (SQL: select * from `users` where `emailaa` = new@a.com limit 1) [] {"uid":"9c49921"}
