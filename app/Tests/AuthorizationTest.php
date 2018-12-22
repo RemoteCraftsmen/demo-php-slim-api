@@ -12,6 +12,7 @@ class AuthorizationTest extends TestCase
     public static function setUpBeforeClass()
     {
         self::$helper = Bootstrap::getApp();
+        Bootstrap::clearDatabase();
     }
 
     protected function tearDown()
@@ -38,8 +39,16 @@ class AuthorizationTest extends TestCase
 
     public function testUsersRegistrationWithEmailAlreadyExistingInDatabase()
     {
-        $loggedUser = Bootstrap::createLoggedUser();
-        $response = self::$helper->apiTest('post', '/auth/register', false, $loggedUser->toArray());
+        $alreadyExistedUser = [
+            'email' => 'phpunit@email.com',
+            'password' => 'phpunit',
+            'first_name' => 'phpunit',
+            'last_name' => 'phpunit',
+            'username' => 'phpunit',
+        ];
+
+        Bootstrap::createLoggedUser($alreadyExistedUser);
+        $response = self::$helper->apiTest('post', '/auth/register', false, $alreadyExistedUser);
 
         $this->assertSame($response['code'], 409);
         $this->assertEquals($response['data']['message'], "The user with such email already exist");

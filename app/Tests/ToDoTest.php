@@ -8,12 +8,12 @@ use PHPUnit\Framework\TestCase;
 
 class ToDoTest extends TestCase
 {
-
     static private $helper;
 
     public static function setUpBeforeClass()
     {
         self::$helper = Bootstrap::getApp();
+        Bootstrap::clearDatabase();
     }
 
     protected function tearDown()

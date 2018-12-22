@@ -38,11 +38,6 @@ down() {
 
 recreate() {
     docker-compose up -d --force-recreate;
-    docker-compose exec php php artisan config:clear;
-}
-
-cc() {
-    docker-compose exec php php artisan config:clear;
 }
 
 configure() {
@@ -50,10 +45,8 @@ configure() {
         cp .env.example .env;
         curl -fsSL 'https://getcomposer.org/composer.phar' -o ./composer.phar;
         docker-compose up -d --force-recreate;
-        docker-compose exec php php composer.phar --prefer-dist install;
-        docker-compose exec php php artisan key:generate;
+        docker-compose exec php php composer.phar install;
         recreate;
-        dbrebuild;
     fi;
 }
 
@@ -74,7 +67,6 @@ migrate(){
 
 createmigration(){
     docker-compose exec php php vendor/bin/phinx create ${@} -c config/config-phinx.php
-
 }
 
 test(){

@@ -13,6 +13,7 @@ class UserTest extends TestCase
     public static function setUpBeforeClass()
     {
         self::$helper = Bootstrap::getApp();
+        Bootstrap::clearDatabase();
     }
 
     protected function tearDown()
@@ -59,7 +60,6 @@ class UserTest extends TestCase
         $this->assertSame($response['code'], 403);
     }
 
-
     public function testTryToShowNotExistingUserDataToLoggedUser()
     {
         Bootstrap::createLoggedUser();
@@ -86,7 +86,6 @@ class UserTest extends TestCase
         $this->assertEquals($response['data']['user']['first_name'], $loggedUser->first_name);
         $this->assertEquals($response['data']['user']['last_name'], $loggedUser->last_name);
         $this->assertEquals($response['data']['user']['id'], $loggedUser->id);
-
     }
 
     public function testTryToUpdateAnotherUserData()
@@ -164,6 +163,5 @@ class UserTest extends TestCase
 
         $this->assertFalse(isset($user));
         $this->assertEquals($response['data']['message'], 'User has been deleted');
-
     }
 }

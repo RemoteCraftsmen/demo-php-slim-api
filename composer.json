@@ -3,12 +3,10 @@
     "description": "Simple Slim Framework ToDo App",
     "type": "project",
     "license": "MIT",
-
     "require": {
         "ext-json": "*",
         "slim/slim": "^3.11",
         "slim/twig-view": "^2.2",
-        "symfony/var-dumper": "^3.2",
         "vlucas/phpdotenv": "^2.4",
         "illuminate/database": "^5.7",
         "robmorgan/phinx": "0.5.*",
@@ -16,6 +14,11 @@
         "tuupola/base62": "^0.11.1",
         "respect/validation": "^1.1",
         "monolog/monolog": "^1.24",
+        "phpunit/phpunit": "^7.5",
+        "fzaninotto/faker": "^1.8"
+    },
+    "require-dev": {
+        "symfony/var-dumper": "^3.2",
         "phpunit/phpunit": "^7.5",
         "fzaninotto/faker": "^1.8"
     },
