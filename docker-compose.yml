@@ -49,7 +49,6 @@ services:
     - php
     restart: always
 
-
 networks:
   global:
     external: true
