@@ -3,11 +3,15 @@
 namespace App\Tests;
 
 use App\Models\Todo;
+use App\Tests\Factories\UserFactory;
+use App\Tests\Factories\ToDoFactory;
 use App\Tests\Setup\Bootstrap;
+use App\Tests\Setup\Helper;
 use PHPUnit\Framework\TestCase;
 
 class ToDoTest extends TestCase
 {
+    /** @var Helper */
     static private $helper;
 
     public static function setUpBeforeClass()
@@ -28,12 +32,12 @@ class ToDoTest extends TestCase
             'name' => 'new ToDo'
         ];
 
-        $response = self::$helper->apiTest('post', '/todo/', true, $newTodo);
+        $response = self::$helper->apiRequest('post', '/todo/', true, $newTodo);
         $todo = Todo::find($response['data']['id']);
 
         $this->assertSame($response['code'], 201);
         $this->assertEquals($response['data']['name'], $newTodo['name']);
-        $this->assertEquals($response['data']['user_id'], $loggedUser->id);
+        $this->assertEquals($response['data']['user_id'], $loggedUser['id']);
         $this->assertTrue(isset($todo));
     }
 
@@ -43,7 +47,7 @@ class ToDoTest extends TestCase
             'name' => str_repeat("a", 50)
         ];
 
-        $response = self::$helper->apiTest('post', '/todo/', true, $newTodo);
+        $response = self::$helper->apiRequest('post', '/todo/', true, $newTodo);
         $todo = Todo::find($response['data']['id']);
 
         $this->assertSame($response['code'], 400);
@@ -55,10 +59,16 @@ class ToDoTest extends TestCase
     public function testTryToShowAllTodoItemsBelongingToLoggedUser()
     {
         $loggedUser = Bootstrap::createLoggedUser();
-        Bootstrap::createLoggedUserTodoCollection($loggedUser->id);
+        $numberOfTodos = intval(rand(1, 3));
+        for ($i = 0; $i < $numberOfTodos; $i++) {
+            ToDoFactory::create([
+                'user_id' => $loggedUser['id'],
+                'creator_id' => $loggedUser['id'],
+            ]);
+        }
 
-        $response = self::$helper->apiTest('get', '/todo/', true);
-        $todos = Todo::where('user_id', $loggedUser->id)->get();
+        $response = self::$helper->apiRequest('get', '/todo/', true);
+        $todos = Todo::where('user_id', $loggedUser['id'])->get();
 
         $this->assertSame($response['code'], 200);
         $this->assertSame(count($response['data']), count($todos));
@@ -67,24 +77,31 @@ class ToDoTest extends TestCase
     public function testTryToShowSingleTodoItemBelongingToLoggedUser()
     {
         $loggedUser = Bootstrap::createLoggedUser();
-        $randomTodoId = Bootstrap::getRandomLoggedUserTodoId($loggedUser->id);
-        $todo = Todo::where('user_id', $loggedUser->id)->first();
+        $randomTodoId = ToDoFactory::create([
+            'user_id' => $loggedUser['id'],
+            'creator_id' => $loggedUser['id'],
+        ])['id'];
 
-        $response = self::$helper->apiTest('get', '/todo/' . $randomTodoId, true);
+        $response = self::$helper->apiRequest('get', '/todo/' . $randomTodoId, true);
 
         $this->assertSame($response['code'], 200);
-        $this->assertEquals($response['data']['user_id'], $loggedUser->id);
-        $this->assertEquals($response['data']['creator_id'], $loggedUser->id);
+        $this->assertEquals($response['data']['user_id'], $loggedUser['id']);
+        $this->assertEquals($response['data']['creator_id'], $loggedUser['id']);
     }
 
     public function testTryToShowSingleTodoItemNotBelongingToLoggedUser()
     {
-        $usersId = Bootstrap::getUsersIdCollection();
         $loggedUser = Bootstrap::createLoggedUser();
-        Bootstrap::getRandomTodos($usersId);
-        $todo = Todo::where('user_id', '!=', $loggedUser->id)->first();
+        $anotherUser = UserFactory::create();
 
-        $response = self::$helper->apiTest('get', '/todo/' . $todo->id, true);
+        ToDoFactory::create([
+            'user_id' => $anotherUser['id'],
+            'creator_id' => $anotherUser['id'],
+        ]);
+
+        $todo = Todo::where('user_id', '!=', $loggedUser['id'])->first();
+
+        $response = self::$helper->apiRequest('get', '/todo/' . $todo->id, true);
 
         $this->assertSame($response['code'], 403);
         $this->assertEquals($response['data']['message'], 'Permission Denied');
@@ -95,7 +112,7 @@ class ToDoTest extends TestCase
         Bootstrap::createLoggedUser();
         $id = 999999999;
 
-        $response = self::$helper->apiTest('get', '/todo/' . $id, true);
+        $response = self::$helper->apiRequest('get', '/todo/' . $id, true);
 
         $this->assertSame($response['code'], 404);
         $this->assertEquals($response['data']['message'], 'Item not found');
@@ -104,31 +121,39 @@ class ToDoTest extends TestCase
     public function testTryToUpdateTodoItemBelongingToLoggedUser()
     {
         $loggedUser = Bootstrap::createLoggedUser();
-        $todoId = Bootstrap::getRandomLoggedUserTodoId($loggedUser->id);
+        $todo = ToDoFactory::create([
+            'user_id' => $loggedUser['id'],
+            'creator_id' => $loggedUser['id'],
+        ]);
+        $todoId = $todo['id'];
         $newTodo = [
             "name" => "new ToDo",
-            "user_id" => 1
+            "user_id" => 999999999
         ];
 
-        $response = self::$helper->apiTest('put', '/todo/' . $todoId, true, $newTodo);
+        $response = self::$helper->apiRequest('put', '/todo/' . $todoId, true, $newTodo);
 
         $this->assertSame($response['code'], 200);
         $this->assertEquals($response['data']['name'], $newTodo['name']);
         $this->assertEquals($response['data']['id'], $todoId);
-        $this->assertEquals($response['data']['creator_id'], $loggedUser->id);
-        $this->assertNotEquals($response['data']['user_id'], $loggedUser->id);
+        $this->assertEquals($response['data']['creator_id'], $loggedUser['id']);
+        $this->assertNotEquals($response['data']['user_id'], $loggedUser['id']);
     }
 
     public function testTryToUpdateTodoItemWithTooShortName()
     {
         $loggedUser = Bootstrap::createLoggedUser();
-        $todoId = Bootstrap::getRandomLoggedUserTodoId($loggedUser->id);
+        $todo = ToDoFactory::create([
+            'user_id' => $loggedUser['id'],
+            'creator_id' => $loggedUser['id'],
+        ]);
+        $todoId = $todo['id'];
         $newTodo = [
             "name" => "n",
             "user_id" => 1
         ];
 
-        $response = self::$helper->apiTest('put', '/todo/' . $todoId, true, $newTodo);
+        $response = self::$helper->apiRequest('put', '/todo/' . $todoId, true, $newTodo);
 
         $this->assertSame($response['code'], 400);
         $this->assertEquals($response['data']['name'][0], 'Name must have a length between 3 and 30');
@@ -143,7 +168,7 @@ class ToDoTest extends TestCase
         ];
         $id = 99999;
 
-        $response = self::$helper->apiTest('put', '/todo/' . $id, true, $newTodo);
+        $response = self::$helper->apiRequest('put', '/todo/' . $id, true, $newTodo);
         $todo = Todo::where('name', $newTodo['name'])->first();
 
         $this->assertSame($response['code'], 200);
@@ -152,15 +177,19 @@ class ToDoTest extends TestCase
 
     public function testTryToUpdateTodoItemWhichDoesNotBelongsToLoggedUser()
     {
-        $usersId = Bootstrap::getUsersIdCollection();
-        $todoId = Bootstrap::getRandomTodoId($usersId);
         Bootstrap::createLoggedUser();
+        $anotherUser = UserFactory::create();
+        $todo = ToDoFactory::create([
+            'user_id' => $anotherUser['id'],
+            'creator_id' => $anotherUser['id'],
+        ]);
+        $todoId = $todo['id'];
         $newTodo = [
             "name" => "new ToDo",
             "user_id" => 1
         ];
 
-        $response = self::$helper->apiTest('put', '/todo/' . $todoId, true, $newTodo);
+        $response = self::$helper->apiRequest('put', '/todo/' . $todoId, true, $newTodo);
 
         $this->assertSame($response['code'], 403);
         $this->assertEquals($response['data']['message'], 'Permission Denied');
@@ -169,32 +198,40 @@ class ToDoTest extends TestCase
     public function testTryToMarkAsCompletedTodoItemBelongingToLoggedUser()
     {
         $loggedUser = Bootstrap::createLoggedUser();
-        $todoId = Bootstrap::getRandomLoggedUserTodoId($loggedUser->id);
+        $todo = ToDoFactory::create([
+            'user_id' => $loggedUser['id'],
+            'creator_id' => $loggedUser['id'],
+        ]);
+        $todoId = $todo['id'];
         $newTodo = [
             "name" => "new ToDo",
             "user_id" => 1
         ];
 
-        $response = self::$helper->apiTest('patch', '/todo/' . $todoId, true, $newTodo);
+        $response = self::$helper->apiRequest('patch', '/todo/' . $todoId, true, $newTodo);
 
         $this->assertSame($response['code'], 200);
         $this->assertEquals($response['data']['id'], $todoId);
         $this->assertEquals($response['data']['user_id'], $newTodo['user_id']);
-        $this->assertEquals($response['data']['creator_id'], $loggedUser->id);
+        $this->assertEquals($response['data']['creator_id'], $loggedUser['id']);
         $this->assertEquals($response['data']['name'], $newTodo['name']);
     }
 
     public function testTryToMarkAsCompletedTodoItemBelongingToAnotherUser()
     {
-        $usersId = Bootstrap::getUsersIdCollection();
-        $todoId = Bootstrap::getRandomTodoId($usersId);
         Bootstrap::createLoggedUser();
+        $anotherUser = UserFactory::create();
+        $todo = ToDoFactory::create([
+            'user_id' => $anotherUser['id'],
+            'creator_id' => $anotherUser['id'],
+        ]);
+        $todoId = $todo['id'];
         $newTodo = [
             "name" => "new ToDo",
             "user_id" => 1
         ];
 
-        $response = self::$helper->apiTest('patch', '/todo/' . $todoId, true, $newTodo);
+        $response = self::$helper->apiRequest('patch', '/todo/' . $todoId, true, $newTodo);
 
         $this->assertSame($response['code'], 403);
         $this->assertEquals($response['data']['message'], 'Permission Denied');
@@ -209,7 +246,7 @@ class ToDoTest extends TestCase
         ];
         $id = 99999;
 
-        $response = self::$helper->apiTest('patch', '/todo/' . $id, true, $newTodo);
+        $response = self::$helper->apiRequest('patch', '/todo/' . $id, true, $newTodo);
 
         $this->assertSame($response['code'], 404);
         $this->assertEquals($response['data']['message'], 'Item not found');
@@ -218,14 +255,18 @@ class ToDoTest extends TestCase
     public function testTryToMarkAsCompletedTodoItemWithWrongData()
     {
         $loggedUser = Bootstrap::createLoggedUser();
-        $todoId = Bootstrap::getRandomLoggedUserTodoId($loggedUser->id);
+        $todo = ToDoFactory::create([
+            'user_id' => $loggedUser['id'],
+            'creator_id' => $loggedUser['id'],
+        ]);
+        $todoId = $todo['id'];
         $newTodo = [
             "name" => "n",
             "completed" => 'aaaa',
             "user_id" => 'asdasd'
         ];
 
-        $response = self::$helper->apiTest('patch', '/todo/' . $todoId, true, $newTodo);
+        $response = self::$helper->apiRequest('patch', '/todo/' . $todoId, true, $newTodo);
 
         $this->assertSame($response['code'], 400);
         $this->assertEquals($response['data']['name'][0], 'Name must have a length between 3 and 30');
@@ -236,9 +277,13 @@ class ToDoTest extends TestCase
     public function testTryToDeleteTodoItemBelongingToLoggedUser()
     {
         $loggedUser = Bootstrap::createLoggedUser();
-        $todoId = Bootstrap::getRandomLoggedUserTodoId($loggedUser->id);
+        $todo = ToDoFactory::create([
+            'user_id' => $loggedUser['id'],
+            'creator_id' => $loggedUser['id'],
+        ]);
+        $todoId = $todo['id'];
 
-        $response = self::$helper->apiTest('delete', '/todo/' . $todoId, true);
+        $response = self::$helper->apiRequest('delete', '/todo/' . $todoId, true);
 
         $this->assertSame($response['code'], 200);
         $this->assertSame($response['data']['message'], 'Item has been deleted');
@@ -246,11 +291,15 @@ class ToDoTest extends TestCase
 
     public function testTryToDeleteTodoItemBelongingToAnotherUser()
     {
-        $usersId = Bootstrap::getUsersIdCollection();
-        $todoId = Bootstrap::getRandomTodoId($usersId);
         Bootstrap::createLoggedUser();
+        $anotherUser = UserFactory::create();
+        $todo = ToDoFactory::create([
+            'user_id' => $anotherUser['id'],
+            'creator_id' => $anotherUser['id'],
+        ]);
+        $todoId = $todo['id'];
 
-        $response = self::$helper->apiTest('delete', '/todo/' . $todoId, true);
+        $response = self::$helper->apiRequest('delete', '/todo/' . $todoId, true);
 
         $this->assertSame($response['code'], 403);
         $this->assertSame($response['data']['message'], 'Permission Denied');
@@ -260,7 +309,7 @@ class ToDoTest extends TestCase
     {
         $id = 99999;
 
-        $response = self::$helper->apiTest('delete', '/todo/' . $id, true);
+        $response = self::$helper->apiRequest('delete', '/todo/' . $id, true);
 
         $this->assertSame($response['code'], 404);
         $this->assertSame($response['data']['message'], 'Item not found');

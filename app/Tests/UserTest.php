@@ -3,11 +3,14 @@
 namespace App\Tests;
 
 use App\Models\User;
+use App\Tests\Factories\UserFactory;
 use App\Tests\Setup\Bootstrap;
+use App\Tests\Setup\Helper;
 use PHPUnit\Framework\TestCase;
 
 class UserTest extends TestCase
 {
+    /** @var Helper */
     static private $helper;
 
     public static function setUpBeforeClass()
@@ -16,7 +19,7 @@ class UserTest extends TestCase
         Bootstrap::clearDatabase();
     }
 
-    protected function tearDown()
+    protected function setUp()
     {
         Bootstrap::clearDatabase();
     }
@@ -25,7 +28,7 @@ class UserTest extends TestCase
     {
         Bootstrap::createLoggedUser();
 
-        $response = self::$helper->apiTest('get', '/users/', true);
+        $response = self::$helper->apiRequest('get', '/users/', true);
 
         $this->assertSame($response['code'], 200);
     }
@@ -34,7 +37,7 @@ class UserTest extends TestCase
     {
         Bootstrap::createLoggedUser();
 
-        $response = self::$helper->apiTest('get', '/users/', false);
+        $response = self::$helper->apiRequest('get', '/users/', false);
 
         $this->assertSame($response['code'], 401);
         $this->assertContains("Token not found", $response['data']['message']);
@@ -44,8 +47,7 @@ class UserTest extends TestCase
     public function testTryToShowUsersDataOfLoggedUser()
     {
         $loggedUser = Bootstrap::createLoggedUser();
-
-        $response = self::$helper->apiTest('get', '/users/' . $loggedUser->id, true);
+        $response = self::$helper->apiRequest('get', '/users/' . $loggedUser['id'], true);
 
         $this->assertSame($response['code'], 200);
         $this->assertFalse(empty($response['data']['user']));
@@ -53,9 +55,11 @@ class UserTest extends TestCase
 
     public function testTryToShowAnotherUserDataToLoggedUser()
     {
-        $randomUserId = Bootstrap::getRandomExistingUserId();
+        Bootstrap::createLoggedUser();
+        $randomUser = UserFactory::create();
+        $randomUserId = $randomUser['id'];
 
-        $response = self::$helper->apiTest('get', '/users/' . $randomUserId, true);
+        $response = self::$helper->apiRequest('get', '/users/' . $randomUserId, true);
 
         $this->assertSame($response['code'], 403);
     }
@@ -65,7 +69,7 @@ class UserTest extends TestCase
         Bootstrap::createLoggedUser();
         $id = 99999;
 
-        $response = self::$helper->apiTest('get', '/users/' . $id, true);
+        $response = self::$helper->apiRequest('get', '/users/' . $id, true);
 
         $this->assertSame($response['code'], 404);
     }
@@ -78,14 +82,14 @@ class UserTest extends TestCase
         ];
         $loggedUser = Bootstrap::createLoggedUser();
 
-        $response = self::$helper->apiTest('put', '/users/' . $loggedUser->id, true, $dataToUpdate);
+        $response = self::$helper->apiRequest('put', '/users/' . $loggedUser['id'], true, $dataToUpdate);
 
         $this->assertSame($response['code'], 200);
         $this->assertEquals($response['data']['user']['email'], $dataToUpdate['email']);
         $this->assertEquals($response['data']['user']['username'], $dataToUpdate['username']);
-        $this->assertEquals($response['data']['user']['first_name'], $loggedUser->first_name);
-        $this->assertEquals($response['data']['user']['last_name'], $loggedUser->last_name);
-        $this->assertEquals($response['data']['user']['id'], $loggedUser->id);
+        $this->assertEquals($response['data']['user']['first_name'], $loggedUser['first_name']);
+        $this->assertEquals($response['data']['user']['last_name'], $loggedUser['last_name']);
+        $this->assertEquals($response['data']['user']['id'], $loggedUser['id']);
     }
 
     public function testTryToUpdateAnotherUserData()
@@ -94,10 +98,11 @@ class UserTest extends TestCase
             'email' => 'new@new.com',
             'username' => 'newusername'
         ];
-        $randomUserId = Bootstrap::getRandomExistingUserId();
+        $randomUser = UserFactory::create();
+        $randomUserId = $randomUser['id'];
         Bootstrap::createLoggedUser();
 
-        $response = self::$helper->apiTest('put', '/users/' . $randomUserId, true, $dataToUpdate);
+        $response = self::$helper->apiRequest('put', '/users/' . $randomUserId, true, $dataToUpdate);
 
         $this->assertSame($response['code'], 403);
         $this->assertEquals($response['data']['status'], "error");
@@ -111,7 +116,7 @@ class UserTest extends TestCase
         ];
         $id = 999999999;
 
-        $response = self::$helper->apiTest('put', '/users/' . $id, true, $dataToUpdate);
+        $response = self::$helper->apiRequest('put', '/users/' . $id, true, $dataToUpdate);
 
         $this->assertSame($response['code'], 404);
         $this->assertEquals($response['data']['status'], "error");
@@ -125,7 +130,7 @@ class UserTest extends TestCase
         ];
         $loggedUser = Bootstrap::createLoggedUser();
 
-        $response = self::$helper->apiTest('put', '/users/' . $loggedUser->id, true, $dataToUpdate);
+        $response = self::$helper->apiRequest('put', '/users/' . $loggedUser['id'], true, $dataToUpdate);
 
         $this->assertSame($response['code'], 400);
         $this->assertEquals($response['data']['email'][0], 'Email must be valid email');
@@ -134,9 +139,10 @@ class UserTest extends TestCase
     public function testTryToDeleteAnotherUser()
     {
         Bootstrap::createLoggedUser();
-        $randomUserId = Bootstrap::getRandomExistingUserId();
+        $randomUser = UserFactory::create();
+        $randomUserId = $randomUser['id'];
 
-        $response = self::$helper->apiTest('delete', '/users/' . $randomUserId, true);
+        $response = self::$helper->apiRequest('delete', '/users/' . $randomUserId, true);
         $user = User::find($randomUserId);
 
         $this->assertTrue(isset($user));
@@ -147,7 +153,7 @@ class UserTest extends TestCase
     {
         $id = 999999999;
 
-        $response = self::$helper->apiTest('delete', '/users/' . $id, true);
+        $response = self::$helper->apiRequest('delete', '/users/' . $id, true);
         $user = User::find($id);
 
         $this->assertFalse(isset($user));
@@ -158,8 +164,9 @@ class UserTest extends TestCase
     {
         $loggedUser = Bootstrap::createLoggedUser();
 
-        $response = self::$helper->apiTest('delete', '/users/' . $loggedUser->id, true);
-        $user = User::find($loggedUser->id);
+        $url = sprintf('/users/%s', $loggedUser['id']);
+        $response = self::$helper->apiRequest('delete', $url, true);
+        $user = User::find($loggedUser['id']);
 
         $this->assertFalse(isset($user));
         $this->assertEquals($response['data']['message'], 'User has been deleted');

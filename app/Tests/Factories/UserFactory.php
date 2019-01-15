@@ -2,28 +2,27 @@
 
 namespace App\Tests\Factories;
 
-use Faker\Factory;
 use App\Models\User;
+use Faker\Factory;
 
 class UserFactory
 {
-    public function generateRandomUsers()
+    public static function create($user = []): User
     {
-        $usersCollection = [];
-
         $faker = Factory::create();
-        for ($i = 1; $i < 5; $i++) {
-            $randomUser = [
-                'id' => $i,
-                'email' => $faker->email,
+        $userToCreate = array_merge(
+            [
+                'email' => $faker->unique()->email,
                 'password' => $faker->password,
                 'first_name' => $faker->firstName,
                 'last_name' => $faker->lastName,
-                'username' => $faker->userName
-            ];
-            array_push($usersCollection, User::create($randomUser)->toArray());
-        }
+                'username' => $faker->unique()->userName
+            ],
+            $user
+        );
 
-        return $usersCollection;
+        $userToCreate['password'] = password_hash($userToCreate['password'], PASSWORD_BCRYPT);
+
+        return User::create($userToCreate);
     }
 }

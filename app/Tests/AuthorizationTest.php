@@ -3,10 +3,12 @@
 namespace App\Tests;
 
 use App\Tests\Setup\Bootstrap;
+use App\Tests\Setup\Helper;
 use PHPUnit\Framework\TestCase;
 
 class AuthorizationTest extends TestCase
 {
+    /** @var Helper */
     static private $helper;
 
     public static function setUpBeforeClass()
@@ -30,7 +32,7 @@ class AuthorizationTest extends TestCase
             'username' => 'phpunit',
         ];
 
-        $response = self::$helper->apiTest('post', '/auth/register', false, $user);
+        $response = self::$helper->apiRequest('post', '/auth/register', false, $user);
 
         $this->assertSame($response['code'], 200);
         $this->assertTrue(isset($response['data']['user']));
@@ -48,7 +50,7 @@ class AuthorizationTest extends TestCase
         ];
 
         Bootstrap::createLoggedUser($alreadyExistedUser);
-        $response = self::$helper->apiTest('post', '/auth/register', false, $alreadyExistedUser);
+        $response = self::$helper->apiRequest('post', '/auth/register', false, $alreadyExistedUser);
 
         $this->assertSame($response['code'], 409);
         $this->assertEquals($response['data']['message'], "The user with such email already exist");
@@ -58,19 +60,15 @@ class AuthorizationTest extends TestCase
     public function testUsersRegistrationWithWrongEmailFormat()
     {
         $user = [
-            'email' => "phpunitemailcom",
-            'password' => 'phpunit',
-            'first_name' => 'phpunit',
-            'last_name' => 'phpunit',
-            'username' => 'phpunit',
+            'email' => "phpunitemailcom"
         ];
 
-        $response = self::$helper->apiTest('post', '/auth/register', false, $user);
+        $response = self::$helper->apiRequest('post', '/auth/register', false, $user);
 
         $this->assertSame($response['code'], 400);
     }
 
-    public function testUsersRegistrationwithoutAllRequiredFields()
+    public function testUsersRegistrationWithoutAllRequiredFields()
     {
         $user = [
             'email' => "phpunitemailcom",
@@ -80,7 +78,7 @@ class AuthorizationTest extends TestCase
             'username' => 'phpunit',
         ];
 
-        $response = self::$helper->apiTest('post', '/auth/register', false, $user);
+        $response = self::$helper->apiRequest('post', '/auth/register', false, $user);
 
         $this->assertSame($response['code'], 400);
     }
@@ -91,13 +89,10 @@ class AuthorizationTest extends TestCase
         $user = [
             'email' => "phpunit@email" . date('mdYHis') . ".com",
             'password' => 'phpunit',
-            'first_name' => 'phpunit',
-            'last_name' => 'phpunit',
-            'username' => 'phpunit',
         ];
         Bootstrap::createLoggedUser($user);
 
-        $response = self::$helper->apiTest('post', '/auth/login', false, [
+        $response = self::$helper->apiRequest('post', '/auth/login', false, [
             'email' => $user['email'],
             'password' => $user['password']
         ]);
@@ -112,8 +107,8 @@ class AuthorizationTest extends TestCase
     {
         $user = Bootstrap::createLoggedUser();
 
-        $response = self::$helper->apiTest('post', '/auth/login', false, [
-            'email' => $user->email,
+        $response = self::$helper->apiRequest('post', '/auth/login', false, [
+            'email' => $user['email'],
             'password' => 11111111,
         ]);
 
@@ -124,17 +119,9 @@ class AuthorizationTest extends TestCase
 
     public function testUsersLoginWithWrongEmail()
     {
-        $user = [
-            'email' => "phpunit@email" . date('mdYHis') . ".com",
-            'password' => 'phpunit',
-            'first_name' => 'phpunit',
-            'last_name' => 'phpunit',
-            'username' => 'phpunit',
-        ];
+        $user = Bootstrap::createLoggedUser();
 
-        Bootstrap::createLoggedUser($user);
-
-        $response = self::$helper->apiTest('post', '/auth/login', false, [
+        $response = self::$helper->apiRequest('post', '/auth/login', false, [
             'email' => 'a@a.com',
             'password' => $user['password'],
         ]);
