@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  mysql:
+    image: mariadb:10
+    container_name: mysql.php-slim.docker
+    stdin_open: true
+    tty: true
+    env_file:
+    - ./docker/mysql/config.env
+    networks:
+    - global
+    volumes:
+    - ~/data/mysql.php-slim.docker:/var/lib/mysql
+    ports:
+    - 127.0.0.1:3306:3306
+    restart: always
+
+networks:
+  global:
+    external: true
