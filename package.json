@@ -1,0 +1,19 @@
+{
+  "name": "slim-todo2",
+  "version": "1.0.0",
+  "description": "ToDo App using Slim Framework 3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/remotecraftsmen/php-slim-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/remotecraftsmen/php-slim-api#readme",
+  "dependencies": {
+    "apidoc": "^0.17.7"
+  }
+}

@@ -17,3 +17,6 @@ Basic todo app written in Slim
 
 #### Run tests
 `./exec.sh test`
+
+#### Generate Apidoc
+`apidoc -c config/ -i app/Controllers/ -o apidoc/`

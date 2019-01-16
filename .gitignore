@@ -4,3 +4,7 @@ logs/
 .env
 composer.lock
 composer.phar
+node_modules/
+.DS_*
+package-lock.json
+apidoc
