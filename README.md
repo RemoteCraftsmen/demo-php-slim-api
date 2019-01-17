@@ -20,3 +20,6 @@ Basic todo app written in Slim
 
 #### Generate Apidoc
 `apidoc -c config/ -i app/Controllers/ -o apidoc/`
+
+### DEMO
+Live demo available at https://php-slim-api.rmtcfm.com/
