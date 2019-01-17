@@ -23,3 +23,4 @@ Basic todo app written in Slim
 
 ### DEMO
 Live demo available at https://php-slim-api.rmtcfm.com/
+Api documentation available at https://php-slim-api.rmtcfm.com/doc/ 
