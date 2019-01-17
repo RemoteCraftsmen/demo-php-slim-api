@@ -2,5 +2,5 @@
 
 require '../vendor/autoload.php';
 
-$app = (new App\App())->get();
+$app = (new App\Setup())->get();
 $app->run();

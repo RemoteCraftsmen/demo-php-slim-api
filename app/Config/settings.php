@@ -1,9 +1,9 @@
 <?php
 
 try {
-    (new Dotenv\Dotenv(__DIR__ . '/../..'))->load();
+    $dotenv = Dotenv\Dotenv::create(dirname(dirname(__DIR__)));
+    $dotenv->load();
 } catch (Dotenv\Exception\InvalidPathException $e) {
-
 }
 
 return [
@@ -35,8 +35,8 @@ return [
             "path" => ["/"],
             "ignore" => ["/auth/register", "/auth/login"],
             "secret" => getenv("JWT_SECRET"),
-            "relaxed" => ["localhost", "slim.test"],
-            "error" => function ($response, $arguments) {
+            "relaxed" => ["localhost", getenv('APP_DOMAIN')],
+            "error" => function (\Slim\Http\Response $response, $arguments) {
                 $data = [];
                 $data["status"] = "error";
                 $data["message"] = $arguments["message"];

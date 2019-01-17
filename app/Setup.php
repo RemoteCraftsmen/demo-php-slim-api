@@ -5,16 +5,16 @@ namespace App;
 use App\Middleware\Middleware;
 use App\Source\Dependencies;
 use App\Routes\Routes;
+use Slim\App;
 
-class App
+class Setup
 {
     private $app;
 
     public function __construct()
     {
         $setting = require __DIR__ . '/Config/settings.php';
-        $app = new \Slim\App($setting);
-        $this->app = $app;
+        $this->app = new App($setting);
         $this->dependencies();
         $this->middleware();
         $this->routes();

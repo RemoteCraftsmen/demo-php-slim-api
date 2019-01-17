@@ -7,15 +7,13 @@
         "ext-json": "*",
         "slim/slim": "^3.11",
         "slim/twig-view": "^2.2",
-        "vlucas/phpdotenv": "^2.4",
+        "vlucas/phpdotenv": "^3.1",
         "illuminate/database": "^5.7",
         "robmorgan/phinx": "0.5.*",
         "tuupola/slim-jwt-auth": "^3.1",
         "tuupola/base62": "^0.11.1",
         "respect/validation": "^1.1",
-        "monolog/monolog": "^1.24",
-        "phpunit/phpunit": "^7.5",
-        "fzaninotto/faker": "^1.8"
+        "monolog/monolog": "^1.24"
     },
     "require-dev": {
         "symfony/var-dumper": "^3.2",
